@@ -75,8 +75,9 @@ class MatrixEditor(QtGui.QWidget):
         self.lowest_pitch = Pitch.from_name("c", "", 0)
         self.start_time = Time(0)
         self.end_time = Time(5)
-        self.width_note = 16
-        self.width_separator = 2
+        self.width_note_used = 8
+        self.width_note_unused = 8
+        self.width_separator = 1
         self.color_background = QtGui.QColor(255, 255, 255)
         self.color_horizontal_separator = QtGui.QColor(255, 255, 255)
         self.color_white_rest = QtGui.QColor(212, 212, 212)
@@ -105,28 +106,22 @@ class MatrixEditor(QtGui.QWidget):
             #Ensure no separators are overpainted
             xstart = self.width_separator + self.time_to_xoffset(note.start - self.start_time)
             width = self.time_to_xoffset(note.duration) - self.width_separator
-            ypos = self.pitch_to_ypos(note.pitch)
+            ypos, height = self.pitch_to_ypos(note.pitch)
 
-            painter.fillRect(xstart, ypos, width, self.width_note, self.color_note)
+            painter.fillRect(xstart, ypos, width, height, self.color_note)
 
     def paint_rests(self, painter):
-        ypos = 0
-        pitch = self.lowest_pitch
-        while ypos < self.height():
+        for pitch, ypos, width in self.visible_pitches():
             if pitch.is_white():
                 color = self.color_white_rest
             else:
                 color = self.color_black_rest
-            painter.fillRect(0, ypos, self.width(), self.width_note, color)
-            ypos = ypos + self.width_note + self.width_separator
-            pitch = pitch.next()
+            painter.fillRect(0, ypos, self.width(), width, color)
 
     def paint_horizontal_separators(self, painter):
-        ypos = self.width_note
-        while ypos < self.height():
-            painter.fillRect(0, ypos, self.width(), self.width_separator,
+        for pitch, ypos, width in self.visible_pitches():
+            painter.fillRect(0, ypos + width, self.width(), self.width_separator,
                     self.color_horizontal_separator)
-            ypos = ypos + self.width_note + self.width_separator
 
     def paint_separators(self, painter, separator, color):
         for time in separator.get_times_from(self.start_time):
@@ -142,8 +137,23 @@ class MatrixEditor(QtGui.QWidget):
                 self.start_time)
         return self.width() * relative_position
 
-    def pitch_to_ypos(self, pitch):
-        ypos = (pitch.value - self.lowest_pitch.value) * (self.width_separator + self.width_note)
-        assert pitch >= self.lowest_pitch and ypos < self.height(), "Requested ypos for pitch out of range"
-        return ypos
+    def visible_pitches(self):
+        ypos = 0
+        pitch = self.lowest_pitch
+        while ypos < self.height():
+            if self.note_with_pitch_visible(pitch):
+                width = self.width_note_used
+            else:
+                width = self.width_note_unused
+            yield pitch, ypos, width
+            ypos = ypos + width + self.width_separator
+            pitch = pitch.next()
 
+    def note_with_pitch_visible(self, pitch):
+        return any(map(lambda note: note.pitch == pitch,
+            self.matrix.notes_between(self.start_time, self.end_time)))
+
+    def pitch_to_ypos(self, target_pitch):
+        for pitch, ypos, width in self.visible_pitches():
+            if pitch == target_pitch:
+                return ypos, width

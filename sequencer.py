@@ -30,6 +30,11 @@ matrix.add_note(Note(Pitch.from_name("e", "", 0), 1 / 4.0, 1 / 4.0))
 matrix.add_note(Note(Pitch.from_name("g", "", 0), 2 / 4.0, 2 / 4.0))
 matrix.add_note(Note(Pitch.from_name("c", "", 0), 5 / 4.0, 1 / 4.0))
 
+matrix.add_note(Note(Pitch.from_name("c", "", 2), 0, 1 / 4.0))
+matrix.add_note(Note(Pitch.from_name("g", "", 1), 1 / 4.0, 1 / 4.0))
+matrix.add_note(Note(Pitch.from_name("e", "", 1), 2 / 4.0, 2 / 4.0))
+matrix.add_note(Note(Pitch.from_name("c", "", 1), 5 / 4.0, 1 / 4.0))
+
 matrixEditor = MatrixEditor(matrix)
 matrixEditor.show()
 sys.exit(app.exec_())
