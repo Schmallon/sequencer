@@ -12,8 +12,8 @@ class Pitch:
             }
     def __init__(self, value):
         self.value = value
-    def __leq__(self, other):
-        return self.value <= other.value
+    def __cmp__(self, other):
+        return self.value - other.value
     def is_white(self):
         normalized = self.value % 12
         return normalized in [0, 2, 4, 5, 7, 9, 11]
@@ -46,7 +46,7 @@ class Matrix:
         self.notes = []
     def add_note(self, note):
         self.notes.append(note)
-    def notes_between(start, end):
+    def notes_between(self, start, end):
         return [note for note in self.notes if (note.end() > start and
             note.end() < end) or (note.start >= start and
                 note.start < end)]
@@ -69,15 +69,14 @@ class SeparatorGenerator:
 
 class MatrixEditor(QtGui.QWidget):
 
-
     def __init__(self, matrix):
         QtGui.QWidget.__init__(self)
         self.matrix = matrix
         self.lowest_pitch = Pitch.from_name("c", "", 0)
         self.start_time = Time(0)
         self.end_time = Time(5)
-        self.width_note = 8
-        self.width_separator = 1
+        self.width_note = 16
+        self.width_separator = 2
         self.color_background = QtGui.QColor(255, 255, 255)
         self.color_horizontal_separator = QtGui.QColor(255, 255, 255)
         self.color_white_rest = QtGui.QColor(212, 212, 212)
@@ -87,6 +86,7 @@ class MatrixEditor(QtGui.QWidget):
         self.color_alternative_grid = QtGui.QColor(171, 171, 171)
         self.separator_alternative = SeparatorGenerator(Time(0), Time(1 / 3.0))
         self.separator_current = SeparatorGenerator(Time(0), Time(1 / 4.0))
+
     def paintEvent(self, event):
         painter = QtGui.QPainter()
         painter.begin(self)
@@ -97,7 +97,17 @@ class MatrixEditor(QtGui.QWidget):
         self.paint_horizontal_separators(painter)
         self.paint_separators(painter, self.separator_current,
                 self.color_current_grid)
+        self.paint_notes(painter)
         painter.end()
+
+    def paint_notes(self, painter):
+        for note in self.matrix.notes_between(self.start_time, self.end_time):
+            #Ensure no separators are overpainted
+            xstart = self.width_separator + self.time_to_xoffset(note.start - self.start_time)
+            width = self.time_to_xoffset(note.duration) - self.width_separator
+            ypos = self.pitch_to_ypos(note.pitch)
+
+            painter.fillRect(xstart, ypos, width, self.width_note, self.color_note)
 
     def paint_rests(self, painter):
         ypos = 0
@@ -123,13 +133,17 @@ class MatrixEditor(QtGui.QWidget):
             print time
             if time >= self.end_time:
                 break
-            xpos = self.time_to_xpos(time)
+            xpos = self.time_to_xoffset(time - self.start_time)
             painter.fillRect(xpos, 0, self.width_separator, self.height(),
                     color)
 
-    def time_to_xpos(self, time):
-        assert time >= self.start_time and time < self.end_time, "Time out of range"
-        relative_position = (time - self.start_time) / (self.end_time -
+    def time_to_xoffset(self, time):
+        relative_position = time / (self.end_time -
                 self.start_time)
         return self.width() * relative_position
+
+    def pitch_to_ypos(self, pitch):
+        ypos = (pitch.value - self.lowest_pitch.value) * (self.width_separator + self.width_note)
+        assert pitch >= self.lowest_pitch and ypos < self.height(), "Requested ypos for pitch out of range"
+        return ypos
 

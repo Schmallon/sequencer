@@ -25,7 +25,10 @@ class SigSlot(QtGui.QWidget):
 
 app = QtGui.QApplication(sys.argv)
 matrix = Matrix()
-matrix.add_note(Note(0, 0, 1))
+matrix.add_note(Note(Pitch.from_name("c", "", 0), 0, 1 / 4.0))
+matrix.add_note(Note(Pitch.from_name("e", "", 0), 1 / 4.0, 1 / 4.0))
+matrix.add_note(Note(Pitch.from_name("g", "", 0), 2 / 4.0, 2 / 4.0))
+matrix.add_note(Note(Pitch.from_name("c", "", 0), 5 / 4.0, 1 / 4.0))
 
 matrixEditor = MatrixEditor(matrix)
 matrixEditor.show()
